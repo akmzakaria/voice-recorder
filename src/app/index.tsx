@@ -7,6 +7,7 @@ import {
   setAudioModeAsync
 } from 'expo-audio';
 import * as FileSystem from 'expo-file-system/legacy';
+import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import {
   View,
@@ -239,9 +240,11 @@ export default function VoiceRecorderScreen() {
           style={[styles.recordButton, recorderState.isRecording && styles.recordButtonActive]}
           onPress={recorderState.isRecording ? stopRecording : startRecording}
         >
-          <Text style={styles.buttonText}>
-            {recorderState.isRecording ? '■' : '🎤'}
-          </Text>
+          {recorderState.isRecording ? (
+            <Ionicons name="stop" size={36} color="#fff" />
+          ) : (
+            <Ionicons name="mic" size={36} color="#fff" />
+          )}
         </TouchableOpacity>
       </View>
 
@@ -261,9 +264,11 @@ export default function VoiceRecorderScreen() {
                 onPress={() => playRecording(item)}
               >
                 <View style={styles.playButton}>
-                  <Text style={styles.playIcon}>
-                    {playingId === item.id ? '⏸' : '▶'}
-                  </Text>
+                  <Ionicons
+                    name={playingId === item.id ? 'pause' : 'play'}
+                    size={22}
+                    color="#fff"
+                  />
                 </View>
 
                 <View style={styles.recordingDetails}>
@@ -280,7 +285,7 @@ export default function VoiceRecorderScreen() {
                 style={styles.deleteButton}
                 onPress={() => deleteRecording(item.id)}
               >
-                <Text style={styles.deleteIcon}>🗑️</Text>
+                <Ionicons name="trash-outline" size={24} color="#ff4444" />
               </TouchableOpacity>
             </View>
           )}
@@ -366,10 +371,6 @@ const styles = StyleSheet.create({
   recordButtonActive: {
     backgroundColor: '#ff0000',
   },
-  buttonText: {
-    fontSize: 32,
-    color: '#fff',
-  },
   listSection: {
     flex: 1,
     padding: 20,
@@ -409,10 +410,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 15,
   },
-  playIcon: {
-    fontSize: 20,
-    color: '#fff',
-  },
   recordingDetails: {
     flex: 1,
     justifyContent: 'center',
@@ -432,9 +429,6 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  deleteIcon: {
-    fontSize: 24,
   },
   emptyState: {
     alignItems: 'center',
