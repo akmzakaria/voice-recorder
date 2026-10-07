@@ -1,6 +1,15 @@
-# Welcome to your Expo app 👋
+# Voice Recorder App 🎙️
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A simple and intuitive voice recording app built with Expo and React Native.
+
+## Features
+
+- **Record Audio**: High-quality audio recording with real-time duration display
+- **Playback**: Play your recordings with a single tap
+- **Delete Recordings**: Remove unwanted recordings with confirmation
+- **Recording List**: View all your recordings with timestamps and durations
+- **Cross-platform**: Works on iOS and Android
+- **Modern Audio API**: Built with the new `expo-audio` package for Expo SDK 57
 
 ## Get started
 
@@ -10,36 +19,73 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npm install
    ```
 
-2. Start the app
+2. Start the development server
 
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+3. **Important**: Since this app uses native audio recording (`expo-audio`), you need a **development build**, not Expo Go.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### Option A: Local Development Build (Recommended)
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
+**For Android:**
 ```bash
-npm run reset-project
+npx expo run:android
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+**For iOS:**
+```bash
+npx expo run:ios
+```
 
-### Other setup steps
+This will build and install the app on your connected device or emulator.
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+### Option B: EAS Build (Cloud Build)
+
+If you don't have Android Studio or Xcode installed:
+
+```bash
+# Install EAS CLI (one time)
+npm install -g eas-cli
+
+# Login
+eas login
+
+# Build for Android
+eas build --profile development --platform android
+
+# Build for iOS (requires Apple Developer account)
+eas build --profile development --platform ios
+```
+
+After building, install the APK/IPA on your device and run `npx expo start --dev-client`.
+
+### Testing on Web
+
+The app works on web browsers for testing UI, but audio recording may have limitations:
+
+```bash
+npx expo start --web
+```
+
+## Usage
+
+1. **Recording**: Tap the microphone button to start recording. The timer will show the current duration.
+2. **Stop Recording**: Tap the red stop button to finish recording. Your recording will appear in the list below.
+3. **Playback**: Tap on any recording in the list to play it. Tap again to pause.
+4. **Delete**: Tap the trash icon to delete a recording (with confirmation).
+
+## Permissions
+
+The app requires microphone permissions to record audio. You'll be prompted for permission when you first try to record.
+
+## Tech Stack
+
+- **Expo SDK 57**: Modern Expo framework
+- **React Native**: Cross-platform mobile development
+- **expo-audio**: Audio recording and playback
+- **TypeScript**: Type-safe development
 
 ## Learn more
 
