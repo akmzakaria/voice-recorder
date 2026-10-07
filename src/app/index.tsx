@@ -6,6 +6,7 @@ import {
   requestRecordingPermissionsAsync,
   setAudioModeAsync
 } from 'expo-audio';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useState, useEffect } from 'react';
 import {
   View,
@@ -22,7 +23,10 @@ type Recording = {
   uri: string;
   duration: number;
   date: Date;
+  filename: string;
 };
+
+const RECORDINGS_DIR = FileSystem.documentDirectory + 'recordings/';
 
 export default function VoiceRecorderScreen() {
   const [recordings, setRecordings] = useState<Recording[]>([]);
@@ -33,9 +37,46 @@ export default function VoiceRecorderScreen() {
   const recorderState = useAudioRecorderState(recorder);
   const player = useAudioPlayer();
 
+  async function loadRecordings() {
+    try {
+      const files = await FileSystem.readDirectoryAsync(RECORDINGS_DIR!);
+      const recordingFiles = files.filter(file => file.endsWith('.m4a'));
+      
+      const loadedRecordings: Recording[] = recordingFiles.map((file) => {
+        const uri = RECORDINGS_DIR + file;
+        const parts = file.replace('.m4a', '').split('_');
+        const timestamp = parseInt(parts[0]);
+        const duration = parseInt(parts[1] || '0');
+        
+        return {
+          id: timestamp.toString(),
+          uri,
+          duration,
+          date: new Date(timestamp),
+          filename: file,
+        };
+      });
+
+      // Sort by date, newest first
+      loadedRecordings.sort((a, b) => b.date.getTime() - a.date.getTime());
+      setRecordings(loadedRecordings);
+    } catch (err) {
+      console.error('Failed to load recordings', err);
+    }
+  }
+
   useEffect(() => {
     async function setupAudio() {
       try {
+        // Create recordings directory if it doesn't exist
+        const dirInfo = await FileSystem.getInfoAsync(RECORDINGS_DIR!);
+        if (!dirInfo.exists) {
+          await FileSystem.makeDirectoryAsync(RECORDINGS_DIR!, { intermediates: true });
+        }
+
+        // Load existing recordings
+        await loadRecordings();
+
         // Configure audio mode
         await setAudioModeAsync({
           allowsRecording: true,
@@ -88,18 +129,29 @@ export default function VoiceRecorderScreen() {
       
       const uri = recorder.uri;
       if (uri) {
+        const timestamp = Date.now();
+        const filename = `${timestamp}_${recorderState.durationMillis}.m4a`;
+        const permanentUri = RECORDINGS_DIR + filename;
+
+        // Move the recording to permanent storage
+        await FileSystem.moveAsync({
+          from: uri,
+          to: permanentUri,
+        });
+
         const newRecording: Recording = {
-          id: Date.now().toString(),
-          uri,
+          id: timestamp.toString(),
+          uri: permanentUri,
           duration: recorderState.durationMillis,
-          date: new Date(),
+          date: new Date(timestamp),
+          filename,
         };
 
         setRecordings((prev) => [newRecording, ...prev]);
       }
     } catch (err) {
       console.error('Failed to stop recording', err);
-      Alert.alert('Error', 'Failed to stop recording');
+      Alert.alert('Error', 'Failed to save recording');
     }
   }
 
@@ -130,12 +182,24 @@ export default function VoiceRecorderScreen() {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => {
-            if (playingId === id) {
-              player.pause();
-              setPlayingId(null);
+          onPress: async () => {
+            try {
+              const recording = recordings.find(r => r.id === id);
+              if (recording) {
+                // Delete the file from storage
+                await FileSystem.deleteAsync(recording.uri, { idempotent: true });
+              }
+
+              if (playingId === id) {
+                player.pause();
+                setPlayingId(null);
+              }
+              
+              setRecordings((prev) => prev.filter((rec) => rec.id !== id));
+            } catch (err) {
+              console.error('Failed to delete recording', err);
+              Alert.alert('Error', 'Failed to delete recording');
             }
-            setRecordings((prev) => prev.filter((rec) => rec.id !== id));
           },
         },
       ]
@@ -153,6 +217,10 @@ export default function VoiceRecorderScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Voice Recorder</Text>
+        <Text style={styles.subtitle}>
+          Files saved to: {'\n'}
+          {RECORDINGS_DIR?.replace(FileSystem.documentDirectory || '', '')}
+        </Text>
       </View>
 
       <View style={styles.recordingSection}>
@@ -244,6 +312,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 10,
+    color: '#fff',
+    textAlign: 'center',
+    marginTop: 5,
+    opacity: 0.8,
   },
   recordingSection: {
     padding: 40,

@@ -8,6 +8,8 @@ A simple and intuitive voice recording app built with Expo and React Native.
 - **Playback**: Play your recordings with a single tap
 - **Delete Recordings**: Remove unwanted recordings with confirmation
 - **Recording List**: View all your recordings with timestamps and durations
+- **Persistent Storage**: Recordings are saved permanently to device storage
+- **Auto-Load**: All recordings load automatically when you open the app
 - **Cross-platform**: Works on iOS and Android
 - **Modern Audio API**: Built with the new `expo-audio` package for Expo SDK 57
 
