@@ -1,68 +1,61 @@
-import { 
-  useAudioRecorder, 
-  useAudioRecorderState, 
-  RecordingPresets, 
-  useAudioPlayer,
-  requestRecordingPermissionsAsync,
-  setAudioModeAsync
-} from 'expo-audio';
-import * as FileSystem from 'expo-file-system/legacy';
-import { Ionicons } from '@expo/vector-icons';
-import { useState, useEffect } from 'react';
+import { Ionicons } from '@expo/vector-icons'
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  FlatList,
-  Alert,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+  RecordingPresets,
+  requestRecordingPermissionsAsync,
+  setAudioModeAsync,
+  useAudioPlayer,
+  useAudioRecorder,
+  useAudioRecorderState,
+} from 'expo-audio'
+import * as FileSystem from 'expo-file-system/legacy'
+import { useEffect, useState } from 'react'
+import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 type Recording = {
-  id: string;
-  uri: string;
-  duration: number;
-  date: Date;
-  filename: string;
-};
+  id: string
+  uri: string
+  duration: number
+  date: Date
+  filename: string
+}
 
-const RECORDINGS_DIR = FileSystem.documentDirectory + 'recordings/';
+const RECORDINGS_DIR = FileSystem.documentDirectory + 'recordings/'
 
 export default function VoiceRecorderScreen() {
-  const [recordings, setRecordings] = useState<Recording[]>([]);
-  const [playingId, setPlayingId] = useState<string | null>(null);
-  const [hasPermission, setHasPermission] = useState(false);
-  
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
-  const recorderState = useAudioRecorderState(recorder);
-  const player = useAudioPlayer();
+  const [recordings, setRecordings] = useState<Recording[]>([])
+  const [playingId, setPlayingId] = useState<string | null>(null)
+  const [hasPermission, setHasPermission] = useState(false)
+
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY)
+  const recorderState = useAudioRecorderState(recorder)
+  const player = useAudioPlayer()
 
   async function loadRecordings() {
     try {
-      const files = await FileSystem.readDirectoryAsync(RECORDINGS_DIR!);
-      const recordingFiles = files.filter(file => file.endsWith('.m4a'));
-      
+      const files = await FileSystem.readDirectoryAsync(RECORDINGS_DIR!)
+      const recordingFiles = files.filter((file) => file.endsWith('.m4a'))
+
       const loadedRecordings: Recording[] = recordingFiles.map((file) => {
-        const uri = RECORDINGS_DIR + file;
-        const parts = file.replace('.m4a', '').split('_');
-        const timestamp = parseInt(parts[0]);
-        const duration = parseInt(parts[1] || '0');
-        
+        const uri = RECORDINGS_DIR + file
+        const parts = file.replace('.m4a', '').split('_')
+        const timestamp = parseInt(parts[0])
+        const duration = parseInt(parts[1] || '0')
+
         return {
           id: timestamp.toString(),
           uri,
           duration,
           date: new Date(timestamp),
           filename: file,
-        };
-      });
+        }
+      })
 
       // Sort by date, newest first
-      loadedRecordings.sort((a, b) => b.date.getTime() - a.date.getTime());
-      setRecordings(loadedRecordings);
+      loadedRecordings.sort((a, b) => b.date.getTime() - a.date.getTime())
+      setRecordings(loadedRecordings)
     } catch (err) {
-      console.error('Failed to load recordings', err);
+      console.error('Failed to load recordings', err)
     }
   }
 
@@ -70,75 +63,69 @@ export default function VoiceRecorderScreen() {
     async function setupAudio() {
       try {
         // Create recordings directory if it doesn't exist
-        const dirInfo = await FileSystem.getInfoAsync(RECORDINGS_DIR!);
+        const dirInfo = await FileSystem.getInfoAsync(RECORDINGS_DIR!)
         if (!dirInfo.exists) {
-          await FileSystem.makeDirectoryAsync(RECORDINGS_DIR!, { intermediates: true });
+          await FileSystem.makeDirectoryAsync(RECORDINGS_DIR!, { intermediates: true })
         }
 
         // Load existing recordings
-        await loadRecordings();
+        await loadRecordings()
 
         // Configure audio mode
         await setAudioModeAsync({
           allowsRecording: true,
           playsInSilentMode: true,
-        });
+        })
 
         // Request permissions
-        const { granted } = await requestRecordingPermissionsAsync();
-        setHasPermission(granted);
-        
+        const { granted } = await requestRecordingPermissionsAsync()
+        setHasPermission(granted)
+
         if (!granted) {
-          Alert.alert(
-            'Permission Required',
-            'Microphone permission is required to record audio.'
-          );
+          Alert.alert('Permission Required', 'Microphone permission is required to record audio.')
         }
       } catch (err) {
-        console.error('Failed to setup audio', err);
+        console.error('Failed to setup audio', err)
       }
     }
 
-    setupAudio();
-  }, []);
+    setupAudio()
+  }, [])
 
   async function startRecording() {
     if (!hasPermission) {
-      const { granted } = await requestRecordingPermissionsAsync();
+      const { granted } = await requestRecordingPermissionsAsync()
       if (!granted) {
-        Alert.alert(
-          'Permission Required',
-          'Please grant microphone permission to record audio.'
-        );
-        return;
+        Alert.alert('Permission Required', 'Please grant microphone permission to record audio.')
+        return
       }
-      setHasPermission(true);
+      setHasPermission(true)
     }
 
     try {
-      await recorder.prepareToRecordAsync();
-      recorder.record();
+      await recorder.prepareToRecordAsync()
+      recorder.record()
     } catch (err) {
-      console.error('Failed to start recording', err);
-      Alert.alert('Error', 'Failed to start recording');
+      console.error('Failed to start recording', err)
+      Alert.alert('Error', 'Failed to start recording')
     }
   }
 
   async function stopRecording() {
     try {
-      await recorder.stop();
-      
-      const uri = recorder.uri;
+      await recorder.stop()
+
+      const uri = recorder.uri
       if (uri) {
-        const timestamp = Date.now();
-        const filename = `${timestamp}_${recorderState.durationMillis}.m4a`;
-        const permanentUri = RECORDINGS_DIR + filename;
+        const timestamp = Date.now()
+        const filename = `${timestamp}_${recorderState.durationMillis}.m4a`
+        const permanentUri = RECORDINGS_DIR + filename
 
         // Move the recording to permanent storage
         await FileSystem.moveAsync({
           from: uri,
           to: permanentUri,
-        });
+        })
 
         const newRecording: Recording = {
           id: timestamp.toString(),
@@ -146,72 +133,68 @@ export default function VoiceRecorderScreen() {
           duration: recorderState.durationMillis,
           date: new Date(timestamp),
           filename,
-        };
+        }
 
-        setRecordings((prev) => [newRecording, ...prev]);
+        setRecordings((prev) => [newRecording, ...prev])
       }
     } catch (err) {
-      console.error('Failed to stop recording', err);
-      Alert.alert('Error', 'Failed to save recording');
+      console.error('Failed to stop recording', err)
+      Alert.alert('Error', 'Failed to save recording')
     }
   }
 
   async function playRecording(item: Recording) {
     try {
       if (playingId === item.id) {
-        player.pause();
-        setPlayingId(null);
-        return;
+        player.pause()
+        setPlayingId(null)
+        return
       }
 
-      player.replace({ uri: item.uri });
-      player.play();
-      setPlayingId(item.id);
+      player.replace({ uri: item.uri })
+      player.play()
+      setPlayingId(item.id)
     } catch (err) {
-      console.error('Failed to play recording', err);
-      Alert.alert('Error', 'Failed to play recording');
-      setPlayingId(null);
+      console.error('Failed to play recording', err)
+      Alert.alert('Error', 'Failed to play recording')
+      setPlayingId(null)
     }
   }
 
   function deleteRecording(id: string) {
-    Alert.alert(
-      'Delete Recording',
-      'Are you sure you want to delete this recording?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const recording = recordings.find(r => r.id === id);
-              if (recording) {
-                // Delete the file from storage
-                await FileSystem.deleteAsync(recording.uri, { idempotent: true });
-              }
-
-              if (playingId === id) {
-                player.pause();
-                setPlayingId(null);
-              }
-              
-              setRecordings((prev) => prev.filter((rec) => rec.id !== id));
-            } catch (err) {
-              console.error('Failed to delete recording', err);
-              Alert.alert('Error', 'Failed to delete recording');
+    Alert.alert('Delete Recording', 'Are you sure you want to delete this recording?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const recording = recordings.find((r) => r.id === id)
+            if (recording) {
+              // Delete the file from storage
+              await FileSystem.deleteAsync(recording.uri, { idempotent: true })
             }
-          },
+
+            if (playingId === id) {
+              player.pause()
+              setPlayingId(null)
+            }
+
+            setRecordings((prev) => prev.filter((rec) => rec.id !== id))
+          } catch (err) {
+            console.error('Failed to delete recording', err)
+            Alert.alert('Error', 'Failed to delete recording')
+          }
         },
-      ]
-    );
+      },
+    ])
   }
 
   function formatDuration(milliseconds: number) {
-    const totalSeconds = Math.floor(milliseconds / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    const totalSeconds = Math.floor(milliseconds / 1000)
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = totalSeconds % 60
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`
   }
 
   return (
@@ -232,9 +215,7 @@ export default function VoiceRecorderScreen() {
           </View>
         )}
 
-        <Text style={styles.duration}>
-          {formatDuration(recorderState.durationMillis)}
-        </Text>
+        <Text style={styles.duration}>{formatDuration(recorderState.durationMillis)}</Text>
 
         <TouchableOpacity
           style={[styles.recordButton, recorderState.isRecording && styles.recordButtonActive]}
@@ -249,9 +230,7 @@ export default function VoiceRecorderScreen() {
       </View>
 
       <View style={styles.listSection}>
-        <Text style={styles.listTitle}>
-          Recordings ({recordings.length})
-        </Text>
+        <Text style={styles.listTitle}>Recordings ({recordings.length})</Text>
 
         <FlatList
           data={recordings}
@@ -259,10 +238,7 @@ export default function VoiceRecorderScreen() {
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => (
             <View style={styles.recordingItem}>
-              <TouchableOpacity
-                style={styles.recordingInfo}
-                onPress={() => playRecording(item)}
-              >
+              <TouchableOpacity style={styles.recordingInfo} onPress={() => playRecording(item)}>
                 <View style={styles.playButton}>
                   <Ionicons
                     name={playingId === item.id ? 'pause' : 'play'}
@@ -275,9 +251,7 @@ export default function VoiceRecorderScreen() {
                   <Text style={styles.recordingDate}>
                     {item.date.toLocaleDateString()} {item.date.toLocaleTimeString()}
                   </Text>
-                  <Text style={styles.recordingDuration}>
-                    {formatDuration(item.duration)}
-                  </Text>
+                  <Text style={styles.recordingDuration}>{formatDuration(item.duration)}</Text>
                 </View>
               </TouchableOpacity>
 
@@ -292,15 +266,13 @@ export default function VoiceRecorderScreen() {
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Text style={styles.emptyText}>No recordings yet</Text>
-              <Text style={styles.emptySubtext}>
-                Tap the microphone button to start recording
-              </Text>
+              <Text style={styles.emptySubtext}>Tap the microphone button to start recording</Text>
             </View>
           }
         />
       </View>
     </SafeAreaView>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -445,4 +417,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#bbb',
   },
-});
+})
